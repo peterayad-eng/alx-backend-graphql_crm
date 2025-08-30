@@ -167,6 +167,28 @@ class CreateOrder(graphene.Mutation):
         order.save()
         return cls(order=order, message="Order created successfully")
 
+class UpdateLowStockProducts(graphene.Mutation):
+    class Arguments:
+        pass
+
+    updated_products = graphene.List(ProductType)
+    message = graphene.String()
+
+    @classmethod
+    def mutate(cls, root, info):
+        low_stock_products = Product.objects.filter(stock__lt=10)
+        updated = []
+
+        for product in low_stock_products:
+            product.stock += 10
+            product.save()
+            updated.append(product)
+
+        return cls(
+            updated_products=updated,
+            message=f"Updated {len(updated)} low-stock products"
+        )
+
 
 # ----------------------------
 # Root Mutation Class
@@ -176,6 +198,7 @@ class Mutation(graphene.ObjectType):
     bulk_create_customers = BulkCreateCustomers.Field()
     create_product = CreateProduct.Field()
     create_order = CreateOrder.Field()
+    update_low_stock_products = UpdateLowStockProducts.Field()
 
 
 # ----------------------------

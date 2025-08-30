@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 # Add CRONJOBS configuration
 CRONJOBS = [
     ('*/5 * * * *', 'crm.cron.log_crm_heartbeat', '>> /tmp/crm_heartbeat_log.txt 2>&1'),
+    ('0 */12 * * *', 'crm.cron.update_low_stock', '>> /tmp/low_stock_updates_log.txt 2>&1'),
 ]
 
 MIDDLEWARE = [
