@@ -1,30 +1,27 @@
-import os
-from datetime import datetime
-import requests
+import datetime
+from gql import gql, Client
+from gql.transport.requests import RequestsHTTPTransport
 
 def log_crm_heartbeat():
-    """Log a heartbeat message to confirm CRM health."""
-    timestamp = datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
-    log_message = f"{timestamp} CRM is alive\n"
+    """Log a heartbeat message and verify GraphQL hello endpoint."""
+    now = datetime.datetime.now().strftime("%d/%m/%Y-%H:%M:%S")
+    status = "CRM is alive"
 
-    # Append message to log file
-    with open("/tmp/crm_heartbeat_log.txt", "a") as log_file:
-        log_file.write(log_message)
-
-    # Ping GraphQL hello field
     try:
-        response = requests.post(
-            "http://localhost:8000/graphql",
-            json={"query": "{ hello }"},
-            timeout=5
+        transport = RequestsHTTPTransport(
+            url="http://localhost:8000/graphql",
+            verify=True,
+            retries=3,
         )
-        if response.ok and "hello" in response.text:
-            with open("/tmp/crm_heartbeat_log.txt", "a") as log_file:
-                log_file.write(f"{timestamp} GraphQL hello OK\n")
-        else:
-            with open("/tmp/crm_heartbeat_log.txt", "a") as log_file:
-                log_file.write(f"{timestamp} GraphQL hello FAILED\n")
+        client = Client(transport=transport, fetch_schema_from_transport=True)
+        query = gql("{ hello }")
+        response = client.execute(query)
+        status += f" | GraphQL says: {response.get('hello')}"
     except Exception as e:
-        with open("/tmp/crm_heartbeat_log.txt", "a") as log_file:
-            log_file.write(f"{timestamp} GraphQL query error: {e}\n")
+        status += f" | GraphQL check failed: {e}"
+
+    message = f"{now} {status}\n"
+
+    with open("/tmp/crm_heartbeat_log.txt", "a") as f:
+        f.write(message)
 
